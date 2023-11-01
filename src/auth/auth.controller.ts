@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto';
 import { Tokens } from './types';
+import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
+import { RtGuard } from 'src/common/guards';
+import { GetCurrentUser, GetCurrentUserId, Public } from 'src/common/decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -11,28 +15,50 @@ export class AuthController {
         private authService: AuthService
         ) {}
 
-    @Post('/local/signup')
+    @Public()
+    @Post('signup')
+    @HttpCode(HttpStatus.CREATED)
     signupLocal(
         @Body() dto: AuthDto
     ): Promise<Tokens> {
         return this.authService.signupLocal(dto);
     };
 
-    @Post('/local/signin')
+    @Public()
+    @Post('signin')
+    @HttpCode(HttpStatus.OK)
     signinLocal(
         @Body() dto: AuthDto
     ): Promise<Tokens> {
         return this.authService.signinLocal(dto);
     };
 
-    @Post('/local/logout')
-    logout() {
-        return this.authService.logout();
+    // @UseGuards(AuthGuard('jwt'))
+    @Post('logout')
+    @HttpCode(HttpStatus.OK)
+    logout(@GetCurrentUserId() userId: number) {
+        
+        // return this.authService.logout(user['sub']);
+        return this.authService.logout(userId);
     };
 
-    @Post('/local/refresh')
-    refreshTokens(){
-        return this.authService.refreshTokens();
+    // @Req() req: Request
+    // const user = req.user;
+
+    // @UseGuards(AuthGuard('jwt-refresh'))
+    @Public()
+    @UseGuards(RtGuard)
+    @Post('refresh')
+    @HttpCode(HttpStatus.CREATED)
+    refreshTokens(@GetCurrentUserId() userId: number,
+    @GetCurrentUser('refreshToken') refreshToken: string
+    ){
+        // return this.authService.refreshTokens();
+        console.log({
+            userId,
+            refreshToken,
+        })
+        return this.authService.refreshTokens(userId, refreshToken);
     };
 
 

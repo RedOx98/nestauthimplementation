@@ -44,12 +44,37 @@ export class AuthService {
         return tokens;
     };
 
-    logout() {
-        return "Logout now"
+    async logout(userId: number) {
+        // return "Logout now"
+        await this.prisma.user.updateMany({
+            where: {
+                id: userId,
+                hashedRt: {
+                    not: null,
+                }
+            },
+            data: {
+                hashedRt: null
+            }
+        })
     };
 
-    refreshTokens() {
-        return "refreshing now"
+    async refreshTokens(userId: number, rt: string) {
+        // return "refreshing now"
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+
+        if(!user) throw new ForbiddenException('user not allowed');
+
+        const rtMatches = bcrypt.compare(rt, user.hashedRt);
+        if(!rtMatches) throw new ForbiddenException('user not allowed');
+
+        const tokens = await this.getTokens(user.id, user.email);
+        await this.updateRtHash(user.id, tokens.refresh_token);
+        return tokens;
     };
 
     async updateRtHash(userId: number, rt: string) {
