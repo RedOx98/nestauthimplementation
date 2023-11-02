@@ -67,7 +67,7 @@ export class AuthService {
             },
         });
 
-        if(!user) throw new ForbiddenException('user not allowed');
+        if(!user || !user.hashedRt) throw new ForbiddenException('user not allowed');
 
         const rtMatches = bcrypt.compare(rt, user.hashedRt);
         if(!rtMatches) throw new ForbiddenException('user not allowed');
